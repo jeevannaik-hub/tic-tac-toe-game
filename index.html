@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes popIn {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+      70% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-cyan-500/20 relative overflow-x-hidden font-sans">
+  <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <div class="fixed -top-36 -left-36 w-80 h-80 sm:w-96 sm:h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="fixed -bottom-36 -right-36 w-80 h-80 sm:w-96 sm:h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <main class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col gap-4 sm:gap-5">
+    <div class="text-center">
+      <h1 class="text-2xl sm:text-3xl font-black tracking-widest text-slate-100 flex items-center justify-center gap-2">
+        TIC <span class="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">X</span> TAC <span class="text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]">O</span> TOE
+      </h1>
+    </div>
+
+    <div class="bg-slate-950/70 p-1.5 rounded-2xl flex border border-slate-800/80 gap-1">
+      <button id="mode-pvp-btn" class="flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200">2 Players</button>
+      <button id="mode-pve-btn" class="flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200">vs Computer</button>
+    </div>
+
+    <div id="difficulty-container" class="hidden bg-slate-950/70 p-1 rounded-xl flex border border-slate-800/80 gap-1">
+      <button id="diff-easy-btn" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200">Easy</button>
+      <button id="diff-medium-btn" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200">Medium</button>
+      <button id="diff-hard-btn" class="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200">Hard</button>
+    </div>
+
+    <div id="status-container" class="bg-slate-950/60 border border-slate-800/80 rounded-xl py-2.5 px-4 flex items-center justify-center gap-2.5 text-sm font-medium tracking-wide">
+      <span id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]"></span>
+      <span id="status-text" class="text-slate-200">Player X's Turn</span>
+    </div>
+
+    <div id="board" class="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-[320px] sm:max-w-[340px] aspect-square mx-auto">
+      <button data-index="0" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="1" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="2" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="3" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="4" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="5" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="6" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="7" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+      <button data-index="8" class="cell aspect-square rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center transition-all duration-200"></button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+      <div class="bg-cyan-950/30 border border-cyan-800/30 rounded-2xl p-2 sm:p-2.5 text-center">
+        <div id="score-label-x" class="text-[10px] sm:text-[11px] font-bold text-cyan-400 tracking-wider">PLAYER X</div>
+        <div id="score-val-x" class="text-xl sm:text-2xl font-black text-cyan-300 mt-0.5">0</div>
+      </div>
+      <div class="bg-slate-950/40 border border-slate-800/60 rounded-2xl p-2 sm:p-2.5 text-center">
+        <div class="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">DRAWS</div>
+        <div id="score-val-ties" class="text-xl sm:text-2xl font-black text-slate-300 mt-0.5">0</div>
+      </div>
+      <div class="bg-rose-950/30 border border-rose-800/30 rounded-2xl p-2 sm:p-2.5 text-center">
+        <div id="score-label-o" class="text-[10px] sm:text-[11px] font-bold text-rose-400 tracking-wider">PLAYER O</div>
+        <div id="score-val-o" class="text-xl sm:text-2xl font-black text-rose-300 mt-0.5">0</div>
+      </div>
+    </div>
+
+    <div class="flex gap-2.5 sm:gap-3">
+      <button id="new-round-btn" class="flex-1 py-2.5 px-3 bg-slate-800/90 hover:bg-slate-750 active:scale-[0.98] border border-slate-700 hover:border-slate-600 rounded-xl font-semibold text-slate-200 text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-1.5 sm:gap-2">
+        <svg class="w-4 h-4 stroke-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span>New Round</span>
+      </button>
+      <button id="reset-scores-btn" class="flex-1 py-2.5 px-3 bg-rose-500/10 hover:bg-rose-500/20 active:scale-[0.98] border border-rose-500/25 hover:border-rose-500/40 rounded-xl font-semibold text-rose-300 text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-1.5 sm:gap-2">
+        <svg class="w-4 h-4 stroke-rose-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+        <span>Reset Scores</span>
+      </button>
+    </div>
+  </main>
+
+  <footer class="relative z-10 text-center mt-5">
+    <p class="text-slate-500 text-xs font-medium tracking-wide">Built by Jeevan</p>
+  </footer>
+
+  <script>
+    const WINNING_COMBINATIONS = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+
+    const FIREWORK_COLORS = [
+      '#22d3ee',
+      '#f43f5e',
+      '#34d399',
+      '#fbbf24',
+      '#a855f7',
+      '#38bdf8',
+      '#ec4899',
+      '#ffffff'
+    ];
+
+    let board = ['', '', '', '', '', '', '', '', ''];
+    let currentPlayer = 'X';
+    let gameMode = 'pvp';
+    let difficulty = 'medium';
+    let isGameOver = false;
+    let isComputerThinking = false;
+    let winningLine = null;
+    let computerTimeoutId = null;
+    const scores = {
+      X: 0,
+      O: 0,
+      ties: 0
+    };
+
+    let fireworksCanvas = null;
+    let fireworksCtx = null;
+    let fireworksActive = false;
+    let fireworksAnimationId = null;
+    let fireworksIntervalId = null;
+    let fireworksTimeoutId = null;
+    let fireworksParticles = [];
+    let fireworksRockets = [];
+
+    function renderMark(player) {
+      if (player === 'X') {
+        return '<svg class="w-12 h-12 sm:w-14 sm:h-14 stroke-cyan-400 animate-pop drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+      }
+      if (player === 'O') {
+        return '<svg class="w-12 h-12 sm:w-14 sm:h-14 stroke-rose-400 animate-pop drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle></svg>';
+      }
+      return '';
+    }
+
+    function renderBoard() {
+      const cellElements = document.querySelectorAll('.cell');
+      cellElements.forEach((cell, idx) => {
+        const mark = board[idx];
+        if (cell.dataset.mark !== mark) {
+          cell.dataset.mark = mark;
+          cell.innerHTML = renderMark(mark);
+        }
+
+        let classes = 'cell aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 ';
+
+        if (winningLine && winningLine.includes(idx)) {
+          classes += 'bg-emerald-500/20 border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.35)] scale-[1.03] animate-pulse';
+        } else if (mark !== '') {
+          classes += 'bg-slate-800/80 border border-slate-700/60 cursor-default';
+        } else if (isGameOver || isComputerThinking) {
+          classes += 'bg-slate-800/80 border border-slate-700/60 cursor-not-allowed opacity-70';
+        } else {
+          classes += 'bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 hover:border-slate-500 cursor-pointer active:scale-95';
+        }
+
+        cell.className = classes;
+      });
+    }
+
+    function renderStatus() {
+      const indicator = document.getElementById('status-indicator');
+      const text = document.getElementById('status-text');
+
+      if (isGameOver) {
+        if (winningLine) {
+          const winner = board[winningLine[0]];
+          indicator.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]';
+          if (gameMode === 'pve') {
+            text.innerText = winner === 'X' ? 'You Win!' : 'Computer Wins!';
+          } else {
+            text.innerText = 'Player ' + winner + ' Wins!';
+          }
+          text.className = 'text-emerald-300 font-bold';
+        } else {
+          indicator.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]';
+          text.innerText = "It's a Draw!";
+          text.className = 'text-amber-300 font-bold';
+        }
+      } else if (isComputerThinking) {
+        indicator.className = 'w-2.5 h-2.5 rounded-full bg-rose-400 animate-ping';
+        text.innerText = 'Computer is thinking...';
+        text.className = 'text-rose-300 font-medium animate-pulse';
+      } else {
+        if (currentPlayer === 'X') {
+          indicator.className = 'w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]';
+          text.innerText = gameMode === 'pve' ? 'Your Turn (X)' : "Player X's Turn";
+          text.className = 'text-cyan-300 font-medium';
+        } else {
+          indicator.className = 'w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]';
+          text.innerText = "Player O's Turn";
+          text.className = 'text-rose-300 font-medium';
+        }
+      }
+    }
+
+    function renderScoreboard() {
+      const labelX = document.getElementById('score-label-x');
+      const labelO = document.getElementById('score-label-o');
+      const valX = document.getElementById('score-val-x');
+      const valO = document.getElementById('score-val-o');
+      const valTies = document.getElementById('score-val-ties');
+
+      if (gameMode === 'pve') {
+        labelX.innerText = 'YOU (X)';
+        labelO.innerText = 'CPU (O)';
+      } else {
+        labelX.innerText = 'PLAYER X';
+        labelO.innerText = 'PLAYER O';
+      }
+
+      valX.innerText = scores.X;
+      valO.innerText = scores.O;
+      valTies.innerText = scores.ties;
+    }
+
+    function renderModeSelector() {
+      const pvpBtn = document.getElementById('mode-pvp-btn');
+      const pveBtn = document.getElementById('mode-pve-btn');
+      const diffContainer = document.getElementById('difficulty-container');
+
+      const activeClass = 'flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 transition-all duration-200';
+      const inactiveClass = 'flex-1 py-2 text-xs sm:text-sm font-medium rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all duration-200';
+
+      if (gameMode === 'pvp') {
+        pvpBtn.className = activeClass;
+        pveBtn.className = inactiveClass;
+        diffContainer.classList.add('hidden');
+        diffContainer.classList.remove('flex');
+      } else {
+        pvpBtn.className = inactiveClass;
+        pveBtn.className = activeClass;
+        diffContainer.classList.remove('hidden');
+        diffContainer.classList.add('flex');
+      }
+    }
+
+    function renderDifficultySelector() {
+      const easyBtn = document.getElementById('diff-easy-btn');
+      const medBtn = document.getElementById('diff-medium-btn');
+      const hardBtn = document.getElementById('diff-hard-btn');
+
+      const activeClass = 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-violet-600 text-white shadow-md shadow-violet-600/30 transition-all duration-200';
+      const inactiveClass = 'flex-1 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all duration-200';
+
+      easyBtn.className = difficulty === 'easy' ? activeClass : inactiveClass;
+      medBtn.className = difficulty === 'medium' ? activeClass : inactiveClass;
+      hardBtn.className = difficulty === 'hard' ? activeClass : inactiveClass;
+    }
+
+    function render() {
+      renderBoard();
+      renderStatus();
+      renderScoreboard();
+      renderModeSelector();
+      renderDifficultySelector();
+    }
+
+    function checkWin(currentBoard, player) {
+      for (let i = 0; i < WINNING_COMBINATIONS.length; i++) {
+        const [a, b, c] = WINNING_COMBINATIONS[i];
+        if (
+          currentBoard[a] === player &&
+          currentBoard[b] === player &&
+          currentBoard[c] === player
+        ) {
+          return WINNING_COMBINATIONS[i];
+        }
+      }
+      return null;
+    }
+
+    function checkDraw(currentBoard) {
+      return currentBoard.every(cell => cell !== '');
+    }
+
+    function getEmptyIndices(currentBoard) {
+      const empty = [];
+      for (let i = 0; i < currentBoard.length; i++) {
+        if (currentBoard[i] === '') {
+          empty.push(i);
+        }
+      }
+      return empty;
+    }
+
+    function getEasyMove(currentBoard) {
+      const empty = getEmptyIndices(currentBoard);
+      if (empty.length === 0) return null;
+      const randomIndex = Math.floor(Math.random() * empty.length);
+      return empty[randomIndex];
+    }
+
+    function getMediumMove(currentBoard) {
+      const empty = getEmptyIndices(currentBoard);
+
+      for (let i = 0; i < empty.length; i++) {
+        const idx = empty[i];
+        currentBoard[idx] = 'O';
+        if (checkWin(currentBoard, 'O')) {
+          currentBoard[idx] = '';
+          return idx;
+        }
+        currentBoard[idx] = '';
+      }
+
+      for (let i = 0; i < empty.length; i++) {
+        const idx = empty[i];
+        currentBoard[idx] = 'X';
+        if (checkWin(currentBoard, 'X')) {
+          currentBoard[idx] = '';
+          return idx;
+        }
+        currentBoard[idx] = '';
+      }
+
+      return getEasyMove(currentBoard);
+    }
+
+    function minimax(tempBoard, depth, isMaximizing) {
+      if (checkWin(tempBoard, 'O')) {
+        return { score: 10 - depth };
+      }
+      if (checkWin(tempBoard, 'X')) {
+        return { score: depth - 10 };
+      }
+      const emptyMoves = getEmptyIndices(tempBoard);
+      if (emptyMoves.length === 0) {
+        return { score: 0 };
+      }
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        let bestMove = null;
+        for (let i = 0; i < emptyMoves.length; i++) {
+          const move = emptyMoves[i];
+          tempBoard[move] = 'O';
+          const result = minimax(tempBoard, depth + 1, false);
+          tempBoard[move] = '';
+          if (result.score > bestScore) {
+            bestScore = result.score;
+            bestMove = move;
+          }
+        }
+        return { score: bestScore, index: bestMove };
+      } else {
+        let bestScore = Infinity;
+        let bestMove = null;
+        for (let i = 0; i < emptyMoves.length; i++) {
+          const move = emptyMoves[i];
+          tempBoard[move] = 'X';
+          const result = minimax(tempBoard, depth + 1, true);
+          tempBoard[move] = '';
+          if (result.score < bestScore) {
+            bestScore = result.score;
+            bestMove = move;
+          }
+        }
+        return { score: bestScore, index: bestMove };
+      }
+    }
+
+    function getHardMove(currentBoard) {
+      const result = minimax([...currentBoard], 0, true);
+      return result.index;
+    }
+
+    function resizeFireworksCanvas() {
+      if (fireworksCanvas) {
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+      }
+    }
+
+    function initFireworks() {
+      fireworksCanvas = document.getElementById('fireworks-canvas');
+      if (fireworksCanvas) {
+        fireworksCtx = fireworksCanvas.getContext('2d');
+        resizeFireworksCanvas();
+        window.addEventListener('resize', resizeFireworksCanvas);
+      }
+    }
+
+    function createBurst(x, y, count, color) {
+      const selectedColor = color || FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 1.5;
+        fireworksParticles.push({
+          x: x,
+          y: y,
+          prevX: x,
+          prevY: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: selectedColor,
+          alpha: 1,
+          decay: Math.random() * 0.015 + 0.012,
+          size: Math.random() * 2.5 + 1.5
+        });
+      }
+    }
+
+    function launchRocket() {
+      if (!fireworksActive || !fireworksCanvas) return;
+      const startX = Math.random() * (fireworksCanvas.width * 0.8) + (fireworksCanvas.width * 0.1);
+      const targetY = Math.random() * (fireworksCanvas.height * 0.45) + (fireworksCanvas.height * 0.15);
+      const speed = Math.random() * 3 + 9;
+      const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+
+      fireworksRockets.push({
+        x: startX,
+        y: fireworksCanvas.height,
+        prevX: startX,
+        prevY: fireworksCanvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: -speed,
+        targetY: targetY,
+        color: color
+      });
+    }
+
+    function updateFireworks() {
+      if (!fireworksCanvas || !fireworksCtx) return;
+
+      fireworksCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+
+      for (let i = fireworksRockets.length - 1; i >= 0; i--) {
+        const r = fireworksRockets[i];
+        r.prevX = r.x;
+        r.prevY = r.y;
+        r.x += r.vx;
+        r.y += r.vy;
+        r.vy += 0.05;
+
+        fireworksCtx.save();
+        fireworksCtx.strokeStyle = r.color;
+        fireworksCtx.lineWidth = 2.5;
+        fireworksCtx.beginPath();
+        fireworksCtx.moveTo(r.prevX, r.prevY);
+        fireworksCtx.lineTo(r.x, r.y);
+        fireworksCtx.stroke();
+        fireworksCtx.restore();
+
+        if (r.y <= r.targetY || r.vy >= 0) {
+          createBurst(r.x, r.y, 55, r.color);
+          fireworksRockets.splice(i, 1);
+        }
+      }
+
+      for (let i = fireworksParticles.length - 1; i >= 0; i--) {
+        const p = fireworksParticles[i];
+        p.prevX = p.x;
+        p.prevY = p.y;
+        p.vx *= 0.96;
+        p.vy = p.vy * 0.96 + 0.07;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          fireworksParticles.splice(i, 1);
+          continue;
+        }
+
+        fireworksCtx.save();
+        fireworksCtx.globalAlpha = Math.max(0, p.alpha);
+        fireworksCtx.strokeStyle = p.color;
+        fireworksCtx.lineWidth = p.size;
+        fireworksCtx.beginPath();
+        fireworksCtx.moveTo(p.prevX, p.prevY);
+        fireworksCtx.lineTo(p.x, p.y);
+        fireworksCtx.stroke();
+        fireworksCtx.restore();
+      }
+
+      if (fireworksActive || fireworksParticles.length > 0 || fireworksRockets.length > 0) {
+        fireworksAnimationId = requestAnimationFrame(updateFireworks);
+      } else {
+        fireworksCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+      }
+    }
+
+    function startFireworks() {
+      stopFireworks();
+      fireworksActive = true;
+      resizeFireworksCanvas();
+
+      createBurst(fireworksCanvas.width * 0.25, fireworksCanvas.height * 0.35, 50);
+      createBurst(fireworksCanvas.width * 0.5, fireworksCanvas.height * 0.25, 65);
+      createBurst(fireworksCanvas.width * 0.75, fireworksCanvas.height * 0.35, 50);
+
+      launchRocket();
+      fireworksIntervalId = setInterval(() => {
+        launchRocket();
+      }, 320);
+
+      fireworksTimeoutId = setTimeout(() => {
+        if (fireworksIntervalId) {
+          clearInterval(fireworksIntervalId);
+          fireworksIntervalId = null;
+        }
+        fireworksActive = false;
+      }, 3500);
+
+      fireworksAnimationId = requestAnimationFrame(updateFireworks);
+    }
+
+    function stopFireworks() {
+      fireworksActive = false;
+      if (fireworksIntervalId) {
+        clearInterval(fireworksIntervalId);
+        fireworksIntervalId = null;
+      }
+      if (fireworksTimeoutId) {
+        clearTimeout(fireworksTimeoutId);
+        fireworksTimeoutId = null;
+      }
+      if (fireworksAnimationId) {
+        cancelAnimationFrame(fireworksAnimationId);
+        fireworksAnimationId = null;
+      }
+      fireworksParticles = [];
+      fireworksRockets = [];
+      if (fireworksCanvas && fireworksCtx) {
+        fireworksCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+      }
+    }
+
+    function triggerComputerMove() {
+      if (isGameOver || currentPlayer !== 'O' || gameMode !== 'pve') {
+        isComputerThinking = false;
+        render();
+        return;
+      }
+
+      let move = null;
+      if (difficulty === 'easy') {
+        move = getEasyMove(board);
+      } else if (difficulty === 'medium') {
+        move = getMediumMove(board);
+      } else {
+        move = getHardMove(board);
+      }
+
+      if (move !== null && move !== undefined && board[move] === '') {
+        isComputerThinking = false;
+        executeMove(move, 'O');
+      } else {
+        isComputerThinking = false;
+        render();
+      }
+    }
+
+    function executeMove(index, player) {
+      board[index] = player;
+      const win = checkWin(board, player);
+
+      if (win) {
+        isGameOver = true;
+        winningLine = win;
+        scores[player]++;
+        render();
+        if (gameMode === 'pvp' || (gameMode === 'pve' && player === 'X')) {
+          startFireworks();
+        }
+        return;
+      }
+
+      if (checkDraw(board)) {
+        isGameOver = true;
+        winningLine = null;
+        scores.ties++;
+        render();
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      render();
+
+      if (gameMode === 'pve' && currentPlayer === 'O') {
+        isComputerThinking = true;
+        render();
+        computerTimeoutId = setTimeout(() => {
+          triggerComputerMove();
+        }, 500);
+      }
+    }
+
+    function handleCellClick(index) {
+      if (isGameOver || isComputerThinking || board[index] !== '') {
+        return;
+      }
+      executeMove(index, currentPlayer);
+    }
+
+    function startNewRound() {
+      stopFireworks();
+      if (computerTimeoutId) {
+        clearTimeout(computerTimeoutId);
+        computerTimeoutId = null;
+      }
+      board = ['', '', '', '', '', '', '', '', ''];
+      currentPlayer = 'X';
+      isGameOver = false;
+      isComputerThinking = false;
+      winningLine = null;
+      const cellElements = document.querySelectorAll('.cell');
+      cellElements.forEach(cell => {
+        cell.dataset.mark = '';
+        cell.innerHTML = '';
+      });
+      render();
+    }
+
+    function resetScores() {
+      scores.X = 0;
+      scores.O = 0;
+      scores.ties = 0;
+      startNewRound();
+    }
+
+    function setGameMode(mode) {
+      if (gameMode === mode) return;
+      gameMode = mode;
+      resetScores();
+    }
+
+    function setDifficulty(diff) {
+      if (difficulty === diff) return;
+      difficulty = diff;
+      resetScores();
+    }
+
+    function init() {
+      initFireworks();
+
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const index = parseInt(cell.dataset.index, 10);
+          handleCellClick(index);
+        });
+      });
+
+      document.getElementById('mode-pvp-btn').addEventListener('click', () => {
+        setGameMode('pvp');
+      });
+
+      document.getElementById('mode-pve-btn').addEventListener('click', () => {
+        setGameMode('pve');
+      });
+
+      document.getElementById('diff-easy-btn').addEventListener('click', () => {
+        setDifficulty('easy');
+      });
+
+      document.getElementById('diff-medium-btn').addEventListener('click', () => {
+        setDifficulty('medium');
+      });
+
+      document.getElementById('diff-hard-btn').addEventListener('click', () => {
+        setDifficulty('hard');
+      });
+
+      document.getElementById('new-round-btn').addEventListener('click', () => {
+        startNewRound();
+      });
+
+      document.getElementById('reset-scores-btn').addEventListener('click', () => {
+        resetScores();
+      });
+
+      render();
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
